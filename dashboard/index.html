@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>لوحة التحكم</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .box {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px #ccc;
+    width: 300px;
+    text-align: center;
+  }
+  input, select, button {
+    width: 100%;
+    padding: 8px;
+    margin-top: 10px;
+    box-sizing: border-box;
+    font-size: 16px;
+  }
+  button {
+    background: #333;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  #message {
+    margin-top: 10px;
+    color: green;
+  }
+  #error {
+    margin-top: 10px;
+    color: red;
+  }
+  #operationBox {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="box" id="loginBox">
+  <h2>تسجيل الدخول</h2>
+  <input type="password" id="password" placeholder="كلمة السر">
+  <button onclick="login()">دخول</button>
+  <div id="error"></div>
+</div>
+
+<div class="box" id="operationBox">
+  <h2>اختر نوع العملية</h2>
+  <p>العملية الحالية: <b id="currentOperationText">...</b></p>
+  <select id="operationSelect">
+    <option value="add">جمع</option>
+    <option value="sub">طرح</option>
+    <option value="mul">ضرب</option>
+    <option value="div">قسمة</option>
+    <option value="pow">رفع لقوة</option>
+  </select>
+  <button onclick="saveOperation()">حفظ</button>
+  <div id="message"></div>
+</div>
+
+<script>
+const operationNames = {
+  add: "جمع",
+  sub: "طرح",
+  mul: "ضرب",
+  div: "قسمة",
+  pow: "رفع لقوة"
+};
+
+function login() {
+  const password = document.getElementById("password").value;
+
+  fetch("/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: password })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("operationBox").style.display = "block";
+      loadCurrentOperation();
+    } else {
+      document.getElementById("error").innerText = "كلمة السر غلط";
+    }
+  });
+}
+
+function loadCurrentOperation() {
+  fetch("/operation")
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("operationSelect").value = data.currentOperation;
+    document.getElementById("currentOperationText").innerText = operationNames[data.currentOperation];
+  });
+}
+
+function saveOperation() {
+  const type = document.getElementById("operationSelect").value;
+
+  fetch("/operation", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: type })
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("message").innerText = "تم الحفظ";
+    document.getElementById("currentOperationText").innerText = operationNames[data.currentOperation];
+  });
+}
+</script>
+
+</body>
+</html>
