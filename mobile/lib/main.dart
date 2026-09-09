@@ -27,7 +27,7 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  final String baseUrl = "http://localhost:4000";
+  final String baseUrl = "https://calculator-app-production-3e94.up.railway.app";
 
   final num1Controller = TextEditingController();
   final num2Controller = TextEditingController();
