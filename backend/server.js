@@ -1,13 +1,16 @@
 const express = require('express');
 const path = require('path');
-const admin = require('firebase-admin');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getMessaging } = require('firebase-admin/messaging');
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+let firebaseApp = null;
+
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  admin.initializeApp({
-    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
+  firebaseApp = initializeApp({
+    credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
   });
   console.log('firebase admin initialized');
 } else {
@@ -86,7 +89,7 @@ function sendNotification(result) {
 
   const body = result.error ? result.error : "الناتج: " + result.value;
 
-  admin.messaging().send({
+  getMessaging(firebaseApp).send({
     token: deviceToken,
     notification: {
       title: "النتيجة",
