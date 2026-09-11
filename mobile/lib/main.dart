@@ -2,8 +2,20 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyBQcfLQ_QDqH_09nH9YE71FeTNTaiuMxas",
+      appId: "1:164229917363:android:4c3493bbf33b451c331ec6",
+      messagingSenderId: "164229917363",
+      projectId: "calculator-app-4549a",
+      storageBucket: "calculator-app-4549a.firebasestorage.app",
+    ),
+  );
   runApp(const MyApp());
 }
 
@@ -34,8 +46,37 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   String status = "";
   Timer? timer;
+  bool resultShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    setupNotifications();
+  }
+
+  Future<void> setupNotifications() async {
+    await FirebaseMessaging.instance.requestPermission();
+
+    final token = await FirebaseMessaging.instance.getToken();
+    if (token != null) {
+      await http.post(
+        Uri.parse("$baseUrl/register-token"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"token": token}),
+      );
+    }
+
+    FirebaseMessaging.onMessage.listen((message) {
+      final title = message.notification?.title ?? "النتيجة";
+      final body = message.notification?.body ?? "";
+      resultShown = true;
+      showResultDialog(title, body);
+    });
+  }
 
   Future<void> sendNumbers() async {
+    resultShown = false;
+
     setState(() {
       status = "جاري الإرسال...";
     });
@@ -50,7 +91,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
 
     setState(() {
-      status = "بانتظار النتيجة...";
+      status = "";
     });
 
     checkResult();
@@ -64,28 +105,26 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
       if (data["ready"] == true) {
         t.cancel();
-        showResult(data["result"]);
+        if (!resultShown) {
+          final result = data["result"];
+          final message = result["error"] ?? "الناتج: ${result["value"]}";
+          resultShown = true;
+          showResultDialog("النتيجة", message);
+        }
       }
     });
   }
 
-  void showResult(Map result) {
+  void showResultDialog(String title, String body) {
     setState(() {
       status = "";
     });
 
-    String message;
-    if (result["error"] != null) {
-      message = result["error"];
-    } else {
-      message = "الناتج: ${result["value"]}";
-    }
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("النتيجة"),
-        content: Text(message),
+        title: Text(title),
+        content: Text(body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
